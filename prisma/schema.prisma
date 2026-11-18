@@ -1,0 +1,288 @@
+// ResumeForge data model
+// PostgreSQL + Prisma 5
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum JobStatus {
+  SAVED
+  APPLIED
+  INTERVIEW
+  OFFER
+  REJECTED
+}
+
+enum GapStatus {
+  OPEN
+  PLANNED
+  DONE
+  DISMISSED
+}
+
+enum VersionSource {
+  UPLOAD
+  BASE
+  TAILORED
+}
+
+enum ProjectStatus {
+  PLANNED
+  IN_PROGRESS
+  DONE
+}
+
+enum AuthProvider {
+  GOOGLE
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  image         String?
+  headline      String?
+  location      String?
+  phone         String?
+  emailVerified DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  resumes         Resume[]
+  jobs            Job[]
+  gapItems        GapItem[]
+  plannedProjects PlannedProject[]
+  coverLetters    CoverLetter[]
+  oauthAccounts   OAuthAccount[]
+
+  @@index([createdAt])
+}
+
+model AuthCode {
+  id         String    @id @default(cuid())
+  email      String
+  codeHash   String
+  expiresAt  DateTime
+  attempts   Int       @default(0)
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([email, expiresAt])
+}
+
+model OAuthAccount {
+  id                String       @id @default(cuid())
+  userId            String
+  provider          AuthProvider
+  providerAccountId String
+  accessToken       String?      @db.Text
+  refreshToken      String?      @db.Text
+  expiresAt         Int?
+  createdAt         DateTime     @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Resume {
+  id               String   @id @default(cuid())
+  userId           String
+  title            String
+  isPrimary        Boolean  @default(false)
+  rawText          String   @db.Text
+  parsed           Json
+  design           Json
+  templateId       String   @default("ats-classic")
+  designSource     String   @default("template") // template | upload
+  parseRisks       Json?
+  originalFileKey  String?
+  originalFileName String?
+  originalFileType String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  versions   ResumeVersion[]
+  analyses   AnalysisReport[]
+  gapItems   GapItem[]
+  shareLinks ShareLink[]
+
+  @@index([userId, updatedAt])
+}
+
+model ResumeVersion {
+  id         String        @id @default(cuid())
+  resumeId   String
+  jobId      String?
+  label      String
+  data       Json
+  design     Json
+  source     VersionSource @default(BASE)
+  matchScore Int?
+  factCheck  Json?
+  isActive   Boolean       @default(false)
+  createdAt  DateTime      @default(now())
+
+  resume       Resume         @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+  job          Job?           @relation(fields: [jobId], references: [id], onDelete: SetNull)
+  coverLetters CoverLetter[]
+  shares       ShareLink[]
+  analyses     AnalysisReport[]
+
+  @@index([resumeId, createdAt])
+  @@index([jobId])
+}
+
+model Job {
+  id               String    @id @default(cuid())
+  userId           String
+  company          String
+  title            String
+  url              String?
+  location         String?
+  jdText           String    @db.Text
+  extracted        Json?
+  status           JobStatus @default(SAVED)
+  statusUpdatedAt  DateTime  @default(now())
+  appliedAt        DateTime?
+  matchScore       Int?
+  salaryMin        Int?
+  salaryMax        Int?
+  currency         String?   @default("USD")
+  notes            String?   @db.Text
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  versions      ResumeVersion[]
+  analyses      AnalysisReport[]
+  gapItems      GapItem[]
+  coverLetters  CoverLetter[]
+  interviewPrep InterviewPrep?
+
+  @@index([userId, status, updatedAt])
+}
+
+model AnalysisReport {
+  id        String   @id @default(cuid())
+  resumeId  String
+  versionId String?
+  jobId     String?
+  score     Int
+  breakdown Json
+  issues    Json
+  keywords  Json?
+  meta      Json?
+  createdAt DateTime @default(now())
+
+  resume  Resume         @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+  version ResumeVersion? @relation(fields: [versionId], references: [id], onDelete: SetNull)
+  job     Job?           @relation(fields: [jobId], references: [id], onDelete: SetNull)
+
+  @@index([resumeId, createdAt])
+  @@index([jobId, createdAt])
+}
+
+model GapItem {
+  id        String    @id @default(cuid())
+  userId    String
+  resumeId  String
+  jobId     String?
+  skill     String
+  category  String // skill | tool | domain | responsibility
+  importance String  // must | nice
+  status    GapStatus @default(OPEN)
+  options   Json
+  evidence  String?   @db.Text
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  resume         Resume          @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+  job            Job?            @relation(fields: [jobId], references: [id], onDelete: SetNull)
+  questions      GapQuestion[]
+  plannedProject PlannedProject?
+
+  @@unique([resumeId, jobId, skill])
+  @@index([userId, status])
+}
+
+model GapQuestion {
+  id        String   @id @default(cuid())
+  gapItemId String
+  question  String   @db.Text
+  answer    String?  @db.Text
+  createdAt DateTime @default(now())
+
+  gapItem GapItem @relation(fields: [gapItemId], references: [id], onDelete: Cascade)
+
+  @@index([gapItemId])
+}
+
+model PlannedProject {
+  id            String        @id @default(cuid())
+  userId        String
+  gapItemId     String?       @unique
+  title         String
+  scope         String        @db.Text
+  stack         Json
+  plan          Json
+  repoStructure Json
+  status        ProjectStatus @default(PLANNED)
+  link          String?
+  createdAt     DateTime      @default(now())
+  completedAt   DateTime?
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  gapItem GapItem? @relation(fields: [gapItemId], references: [id], onDelete: SetNull)
+
+  @@index([userId, status])
+}
+
+model CoverLetter {
+  id              String   @id @default(cuid())
+  userId          String
+  jobId           String
+  resumeVersionId String?
+  content         String   @db.Text
+  tone            String   @default("professional")
+  createdAt       DateTime @default(now())
+
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  job           Job            @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  resumeVersion ResumeVersion? @relation(fields: [resumeVersionId], references: [id], onDelete: SetNull)
+
+  @@index([userId, jobId])
+}
+
+model InterviewPrep {
+  id        String   @id @default(cuid())
+  jobId     String   @unique
+  questions Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  job Job @relation(fields: [jobId], references: [id], onDelete: Cascade)
+}
+
+model ShareLink {
+  id              String    @id @default(cuid())
+  token           String    @unique
+  resumeId        String
+  resumeVersionId String?
+  expiresAt       DateTime?
+  revokedAt       DateTime?
+  createdAt       DateTime  @default(now())
+
+  resume  Resume         @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+  version ResumeVersion? @relation(fields: [resumeVersionId], references: [id], onDelete: SetNull)
+
+  @@index([resumeId])
+}

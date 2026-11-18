@@ -1,0 +1,149 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 40 25% 98%;
+    --foreground: 222 32% 12%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 32% 12%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 32% 12%;
+    --primary: 172 83% 24%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 165 30% 95%;
+    --secondary-foreground: 174 55% 20%;
+    --muted: 220 20% 96%;
+    --muted-foreground: 220 9% 44%;
+    --accent: 168 42% 94%;
+    --accent-foreground: 174 55% 18%;
+    --destructive: 350 78% 48%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 158 74% 34%;
+    --warning: 32 92% 44%;
+    --border: 220 16% 90%;
+    --input: 220 16% 88%;
+    --ring: 172 72% 30%;
+    --radius: 0.75rem;
+    --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --font-display: "Source Serif 4", Georgia, serif;
+  }
+
+  .dark {
+    --background: 222 30% 7%;
+    --foreground: 210 25% 94%;
+    --card: 222 27% 10%;
+    --card-foreground: 210 25% 94%;
+    --popover: 222 27% 10%;
+    --popover-foreground: 210 25% 94%;
+    --primary: 168 65% 45%;
+    --primary-foreground: 178 80% 8%;
+    --secondary: 220 18% 16%;
+    --secondary-foreground: 168 50% 82%;
+    --muted: 222 20% 14%;
+    --muted-foreground: 218 12% 64%;
+    --accent: 220 19% 17%;
+    --accent-foreground: 168 52% 86%;
+    --destructive: 350 68% 55%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 158 62% 46%;
+    --warning: 38 88% 58%;
+    --border: 220 14% 19%;
+    --input: 220 14% 22%;
+    --ring: 168 60% 46%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  ::selection {
+    background: hsl(172 72% 30% / 0.18);
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply tracking-tight;
+  }
+}
+
+@layer components {
+  .surface {
+    @apply rounded-xl border bg-card shadow-soft;
+  }
+
+  .eyebrow {
+    @apply text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground;
+  }
+
+  .link-underline {
+    @apply underline decoration-border underline-offset-4 transition hover:decoration-foreground;
+  }
+
+  .grid-fade {
+    background-image:
+      linear-gradient(to right, hsl(var(--border) / 0.55) 1px, transparent 1px),
+      linear-gradient(to bottom, hsl(var(--border) / 0.55) 1px, transparent 1px);
+    background-size: 44px 44px;
+    mask-image: radial-gradient(ellipse 80% 65% at 50% 0%, black 30%, transparent 75%);
+  }
+
+  .text-gradient {
+    @apply bg-gradient-to-br from-forge-700 via-forge-600 to-emerald-500 bg-clip-text text-transparent dark:from-forge-300 dark:via-forge-400 dark:to-emerald-300;
+  }
+
+  .paper {
+    background: #ffffff;
+    color: #1f2937;
+    box-shadow: 0 1px 3px rgba(16, 24, 40, 0.08), 0 24px 60px -24px rgba(16, 24, 40, 0.32);
+  }
+
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border)) transparent;
+  }
+}
+
+@layer utilities {
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+  }
+}
+
+/* Print only the resume paper, used by the public share page. */
+@media print {
+  body {
+    background: #fff !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .print-paper {
+    box-shadow: none !important;
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    border: 0 !important;
+  }
+
+  @page {
+    margin: 0;
+    size: letter;
+  }
+}
